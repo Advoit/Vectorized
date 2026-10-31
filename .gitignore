@@ -1,0 +1,17 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Local scratch artefacts (engine experiments, package tarballs)
+_inspect/
+*.tgz
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.local
