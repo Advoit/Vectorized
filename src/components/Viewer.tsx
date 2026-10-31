@@ -24,7 +24,7 @@ import {
   IconZoomIn,
   IconZoomOut,
 } from '@tabler/icons-react';
-import { de } from '../i18n/de';
+import { useLocale, useMessages, useNumberFormat, type Messages } from '../i18n';
 import type { SourceImage } from '../image/load';
 import { formatBytes, formatCount } from '../trace/postprocess';
 import type { JobState, Preferences, TraceResult, ViewMode } from '../trace/types';
@@ -79,16 +79,16 @@ function backgroundLuminance(preferences: Preferences): number {
   return preferences.previewBackground === 'dark' ? 32 : 247;
 }
 
-function jobLabel(job: JobState): string {
+function jobLabel(job: JobState, m: Messages): string {
   switch (job.phase) {
     case 'preparing':
-      return de.status.preparing;
+      return m.status.preparing;
     case 'tracing':
-      return de.status.tracing;
+      return m.status.tracing;
     case 'finalizing':
-      return de.status.finalizing;
+      return m.status.finalizing;
     default:
-      return de.status.ready;
+      return m.status.ready;
   }
 }
 
@@ -108,6 +108,10 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
   },
   ref,
 ) {
+  const m = useMessages();
+  const { locale } = useLocale();
+  const { number, decimal } = useNumberFormat();
+
   const containerRef = useRef<HTMLDivElement>(null);
   const handleDragRef = useRef(false);
   const pointerMap = useRef(new Map<number, { x: number; y: number }>());
@@ -233,7 +237,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
         viewBox={`0 0 ${result.width} ${result.height}`}
         preserveAspectRatio="xMidYMid meet"
         role="img"
-        aria-label={de.viewer.vectorAlt}
+        aria-label={m.viewer.vectorAlt}
         data-testid="vector-preview"
       >
         {vectorBackground ? (
@@ -264,6 +268,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
       </svg>
     );
   }, [
+    m,
     preferences,
     result,
     vectorBackground,
@@ -438,60 +443,76 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
 
   const vectorVisible = Boolean(result) && viewMode !== 'original';
   const compareVisible = Boolean(result) && viewMode === 'compare';
+
+  /*
+   * The divider handle is positioned in canvas coordinates, while the vector
+   * layer is clipped inside the stage, which is centred, scaled and panned.
+   * Clipping by the raw split percentage made the clip edge drift away from
+   * the handle as soon as the image was letterboxed, zoomed or panned, so the
+   * split point is projected into the stage's own coordinate space.
+   */
+  const vectorClipPath = useMemo(() => {
+    const stageWidth = source.width * transform.scale;
+    if (!compareVisible || containerSize.width <= 0 || stageWidth <= 0) return undefined;
+    const stageLeft = containerSize.width / 2 + transform.x - stageWidth / 2;
+    const splitX = (split / 100) * containerSize.width;
+    const percent = clamp(((splitX - stageLeft) / stageWidth) * 100, 0, 100);
+    return `inset(0 0 0 ${percent.toFixed(2)}%)`;
+  }, [compareVisible, containerSize.width, source.width, split, transform.scale, transform.x]);
   const showNoResult = !result && viewMode !== 'original';
   const zoomPercent = Math.round(transform.scale * 100);
 
   return (
-    <section className="viewer-column" aria-label={de.viewer.stageLabel}>
+    <section className="viewer-column" aria-label={m.viewer.stageLabel}>
       <div className="viewer-toolbar">
         <Segmented
-          label={de.viewer.modesLabel}
+          label={m.viewer.modesLabel}
           value={viewMode}
           onChange={onViewMode}
           iconOnlyMobile
           options={[
             {
               value: 'original',
-              label: de.viewer.original,
+              label: m.viewer.original,
               icon: <IconPhoto size={15} stroke={1.7} />,
-              ariaLabel: de.viewer.original,
+              ariaLabel: m.viewer.original,
             },
             {
               value: 'compare',
-              label: de.viewer.compare,
+              label: m.viewer.compare,
               icon: <IconArrowsHorizontal size={15} stroke={1.7} />,
               disabled: !result,
-              disabledReason: de.viewer.noResultTitle,
-              ariaLabel: de.viewer.compare,
+              disabledReason: m.viewer.noResultTitle,
+              ariaLabel: m.viewer.compare,
             },
             {
               value: 'vector',
-              label: de.viewer.vector,
+              label: m.viewer.vector,
               icon: <IconVectorBezier2 size={15} stroke={1.7} />,
               disabled: !result,
-              disabledReason: de.viewer.noResultTitle,
-              ariaLabel: de.viewer.vector,
+              disabledReason: m.viewer.noResultTitle,
+              ariaLabel: m.viewer.vector,
             },
           ]}
         />
 
         <div className="viewer-toolbar__spacer" />
 
-        <div className="preview-backgrounds" role="group" aria-label={de.viewer.backgroundLabel}>
+        <div className="preview-backgrounds" role="group" aria-label={m.viewer.backgroundLabel}>
           <IconButton
-            label={de.viewer.backgroundLight}
+            label={m.viewer.backgroundLight}
             icon={<IconSun size={16} stroke={1.7} />}
             active={preferences.previewBackground === 'light'}
             onClick={() => onPreferences({ previewBackground: 'light' })}
           />
           <IconButton
-            label={de.viewer.backgroundDark}
+            label={m.viewer.backgroundDark}
             icon={<IconMoon size={16} stroke={1.7} />}
             active={preferences.previewBackground === 'dark'}
             onClick={() => onPreferences({ previewBackground: 'dark' })}
           />
           <IconButton
-            label={de.viewer.backgroundChecker}
+            label={m.viewer.backgroundChecker}
             icon={<IconGridDots size={16} stroke={1.7} />}
             active={preferences.previewBackground === 'checker'}
             onClick={() => onPreferences({ previewBackground: 'checker' })}
@@ -501,7 +522,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
         <span className="toolbar-divider" aria-hidden="true" />
 
         <IconButton
-          label={de.viewer.contours}
+          label={m.viewer.contours}
           icon={<IconVector size={16} stroke={1.7} />}
           active={preferences.showContours}
           disabled={!result}
@@ -510,7 +531,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
 
         {isMobile ? (
           <IconButton
-            label={de.sidebar.openSettings}
+            label={m.sidebar.openSettings}
             icon={<IconAdjustmentsHorizontal size={17} stroke={1.7} />}
             onClick={onOpenSettings}
           />
@@ -522,7 +543,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
         className={`canvas-wrap preview-${preferences.previewBackground}${panning ? ' is-panning' : ''}`}
         tabIndex={0}
         role="group"
-        aria-label={de.viewer.stageLabel}
+        aria-label={m.viewer.stageLabel}
         onPointerDown={beginPan}
         onPointerMove={movePan}
         onPointerUp={endPan}
@@ -542,7 +563,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
             <img
               className="stage__image"
               src={source.url}
-              alt={de.viewer.originalAlt}
+              alt={m.viewer.originalAlt}
               draggable={false}
               data-testid="original-preview"
             />
@@ -551,7 +572,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
           {vectorVisible && vectorPreview ? (
             <div
               className="stage__vector-layer"
-              style={compareVisible ? { clipPath: `inset(0 0 0 ${split}%)` } : undefined}
+              style={vectorClipPath ? { clipPath: vectorClipPath } : undefined}
             >
               {vectorPreview}
             </div>
@@ -561,8 +582,8 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
         {compareVisible && result ? (
           <>
             <div className="compare-legend" aria-hidden="true">
-              <span className="compare-legend__chip">{de.viewer.originalLabel}</span>
-              <span className="compare-legend__chip">{de.viewer.vectorLabel}</span>
+              <span className="compare-legend__chip">{m.viewer.originalLabel}</span>
+              <span className="compare-legend__chip">{m.viewer.vectorLabel}</span>
             </div>
             <div
               className="compare-control"
@@ -571,7 +592,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
               data-testid="compare-handle"
               role="slider"
               tabIndex={0}
-              aria-label={de.viewer.splitLabel}
+              aria-label={m.viewer.splitLabel}
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={Math.round(split)}
@@ -592,10 +613,10 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
 
         {showNoResult ? (
           <div className="canvas-message" role="status">
-            <h2>{de.viewer.noResultTitle}</h2>
-            <p>{de.viewer.noResultBody}</p>
+            <h2>{m.viewer.noResultTitle}</h2>
+            <p>{m.viewer.noResultBody}</p>
             <button type="button" className="btn btn--primary" onClick={onTrace}>
-              {de.viewer.noResultAction}
+              {m.viewer.noResultAction}
             </button>
           </div>
         ) : null}
@@ -603,11 +624,11 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
         {!result && !showNoResult && job.phase === 'idle' ? (
           <div className="canvas-cta" data-no-pan>
             <div>
-              <strong>{de.viewer.noResultTitle}</strong>
-              <span>{de.viewer.noResultBody}</span>
+              <strong>{m.viewer.noResultTitle}</strong>
+              <span>{m.viewer.noResultBody}</span>
             </div>
             <button type="button" className="btn btn--primary" onClick={onTrace}>
-              {de.viewer.noResultAction}
+              {m.viewer.noResultAction}
             </button>
           </div>
         ) : null}
@@ -616,10 +637,10 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
           <div className="stale-badge" data-no-pan role="status" data-testid="stale-badge">
             <IconAlertTriangle size={15} stroke={1.9} aria-hidden="true" />
             <span>
-              <strong>{de.viewer.stale}</strong> {de.viewer.staleHint}
+              <strong>{m.viewer.stale}</strong> {m.viewer.staleHint}
             </span>
             <button type="button" className="link-button" onClick={onTrace}>
-              {de.viewer.staleAction}
+              {m.viewer.staleAction}
             </button>
           </div>
         ) : null}
@@ -627,9 +648,9 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
         {job.phase !== 'idle' ? (
           <div className="canvas-progress" role="status">
             <Spinner />
-            <span>{jobLabel(job)}</span>
+            <span>{jobLabel(job, m)}</span>
             <span className="numeric">
-              {de.status.elapsed((elapsed < 10 ? elapsed.toFixed(1) : Math.round(elapsed).toString()).replace('.', ','))}
+              {m.status.elapsed(elapsed < 10 ? decimal(elapsed) : number(Math.round(elapsed)))}
             </span>
           </div>
         ) : null}
@@ -644,11 +665,11 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
           <span className="status-sep" aria-hidden="true">
             ·
           </span>
-          <span className="numeric">{de.status.imageInfo(source.width, source.height)}</span>
+          <span className="numeric">{m.status.imageInfo(source.width, source.height)}</span>
           <span className="status-optional status-sep" aria-hidden="true">
             ·
           </span>
-          <span className="status-optional numeric">{formatBytes(source.size)}</span>
+          <span className="status-optional numeric">{formatBytes(source.size, locale)}</span>
         </div>
 
         <div className="viewer-status__center" aria-live="polite">
@@ -660,11 +681,11 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
             {job.phase === 'idle' && !stale ? (
               <span className="status-dot" aria-hidden="true" />
             ) : null}
-            {stale && job.phase === 'idle' ? de.status.stale : jobLabel(job)}
+            {stale && job.phase === 'idle' ? m.status.stale : jobLabel(job, m)}
           </span>
           {result && !stale ? (
-            <span className="status-working numeric" title={de.status.workingInfo(result.width, result.height)}>
-              {de.status.workingInfo(result.width, result.height)}
+            <span className="status-working numeric" title={m.status.workingInfo(result.width, result.height)}>
+              {m.status.workingInfo(result.width, result.height)}
             </span>
           ) : null}
         </div>
@@ -672,7 +693,10 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
         <div className="viewer-status__right">
           {result ? (
             <span className="status-result numeric" data-testid="result-info">
-              {de.status.resultInfo(formatCount(result.stats.pathCount), formatBytes(result.stats.bytes))}
+              {m.status.resultInfo(
+                formatCount(result.stats.pathCount, locale),
+                formatBytes(result.stats.bytes, locale),
+              )}
             </span>
           ) : null}
           <span className="status-sep status-result" aria-hidden="true">
@@ -680,28 +704,28 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
           </span>
           <div className="zoom-controls">
             <IconButton
-              label={de.viewer.zoomOut}
+              label={m.viewer.zoomOut}
               icon={<IconZoomOut size={14} stroke={1.8} />}
               onClick={() => zoomAt(0, 0, 0.8)}
               tooltipSide="top"
             />
-            <span className="zoom-value numeric" aria-label={`${de.viewer.zoomValue} ${zoomPercent} %`}>
-              {de.status.zoom(formatCount(zoomPercent))}
+            <span className="zoom-value numeric" aria-label={`${m.viewer.zoomValue} ${zoomPercent} %`}>
+              {m.status.zoom(formatCount(zoomPercent, locale))}
             </span>
             <IconButton
-              label={de.viewer.zoomIn}
+              label={m.viewer.zoomIn}
               icon={<IconZoomIn size={14} stroke={1.8} />}
               onClick={() => zoomAt(0, 0, 1.25)}
               tooltipSide="top"
             />
             <IconButton
-              label={`${de.viewer.fit} (${de.shortcuts.fit})`}
+              label={`${m.viewer.fit} (${m.shortcuts.fit})`}
               icon={<IconFocusCentered size={14} stroke={1.8} />}
               onClick={fit}
               tooltipSide="top"
             />
-            <button type="button" className="status-text-button" onClick={actualSize} title={de.viewer.actualSizeTooltip}>
-              {de.viewer.actualSize}
+            <button type="button" className="status-text-button" onClick={actualSize} title={m.viewer.actualSizeTooltip}>
+              {m.viewer.actualSize}
             </button>
           </div>
         </div>

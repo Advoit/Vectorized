@@ -4,11 +4,12 @@ import { AboutDialog } from './components/AboutDialog';
 import { EmptyState } from './components/EmptyState';
 import { ExportDialog } from './components/ExportDialog';
 import { Header } from './components/Header';
+import { PrivacyNotice } from './components/PrivacyNotice';
 import { Sidebar } from './components/Sidebar';
 import { ToastViewport } from './components/ToastViewport';
 import { Viewer, type ViewerHandle } from './components/Viewer';
 import { useMediaQuery } from './hooks/useMediaQuery';
-import { de } from './i18n/de';
+import { useLocale, useMessages, useNumberFormat, type Messages } from './i18n';
 import {
   disposeSource,
   ImageLoadError,
@@ -36,24 +37,24 @@ import { useToasts } from './state/useToasts';
 import { useTraceHistory } from './state/useTraceHistory';
 import { expectedWorkingDimensions, useVectorizer } from './state/useVectorizer';
 
-function importErrorMessage(error: unknown): string {
+function importErrorMessage(error: unknown, m: Messages): string {
   if (error instanceof ImageLoadError) {
     switch (error.code) {
       case 'invalidType':
-        return de.errors.invalidType;
+        return m.errors.invalidType;
       case 'svgNotSupported':
-        return de.errors.svgNotSupported;
+        return m.errors.svgNotSupported;
       case 'fileTooLarge':
-        return de.errors.fileTooLarge;
+        return m.errors.fileTooLarge;
       case 'tooManyPixels':
-        return de.errors.tooManyPixels;
+        return m.errors.tooManyPixels;
       case 'decodeFailed':
-        return de.errors.decodeFailed;
+        return m.errors.decodeFailed;
       case 'emptyPixels':
-        return de.errors.emptyPixels;
+        return m.errors.emptyPixels;
     }
   }
-  return de.errors.decodeFailed;
+  return m.errors.decodeFailed;
 }
 
 function hasFilePayload(event: DragEvent): boolean {
@@ -76,27 +77,32 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const viewerRef = useRef<ViewerHandle>(null);
   const autoSuppressedRef = useRef<string | null>(null);
+  const clipboardReadRef = useRef<'idle' | 'pending' | 'done' | 'failed'>('idle');
+  const pasteDeliveredRef = useRef(0);
   const autoStateRef = useRef<{ key: string; status: 'scheduled' | 'running' | 'done' | 'failed' }>({
     key: '',
     status: 'done',
   });
   const manualTraceRef = useRef(true);
   const isMobile = useMediaQuery('(max-width: 860px)');
+  const m = useMessages();
+  const { locale } = useLocale();
+  const { decimal } = useNumberFormat();
 
   const handleTraceSuccess = useCallback(
     (result: TraceResult) => {
       if (manualTraceRef.current) {
         toasts.show(
-          de.toasts.traced(
-            formatCount(result.stats.pathCount),
-            (result.elapsedMs / 1000).toFixed(1).replace('.', ','),
+          m.toasts.traced(
+            formatCount(result.stats.pathCount, locale),
+            decimal(result.elapsedMs / 1000),
           ),
           'success',
         );
       }
       setViewMode((current) => (current === 'original' ? 'compare' : current));
     },
-    [toasts],
+    [decimal, locale, m, toasts],
   );
 
   const vectorizer = useVectorizer({
@@ -144,10 +150,8 @@ export default function App() {
   }, [source]);
 
   useEffect(() => {
-    document.title = source
-      ? `${source.name} – ${de.product.name}`
-      : de.product.title;
-  }, [source]);
+    document.title = source ? `${source.name} – ${m.product.name}` : m.product.title;
+  }, [m, source]);
 
   useEffect(() => {
     if (!isMobile) setSettingsOpen(false);
@@ -171,8 +175,8 @@ export default function App() {
     autoSuppressedRef.current = currentSignature;
     autoStateRef.current = { key: '', status: 'done' };
     vectorizer.cancel();
-    toasts.show(de.toasts.cancelled, 'info');
-  }, [currentSignature, toasts, vectorizer]);
+    toasts.show(m.toasts.cancelled, 'info');
+  }, [currentSignature, m, toasts, vectorizer]);
 
   useEffect(() => {
     if (!source || !preferences.autoTrace || !currentSignature) return;
@@ -246,27 +250,27 @@ export default function App() {
         setSettingsOpen(false);
         autoSuppressedRef.current = null;
         autoStateRef.current = { key: '', status: 'done' };
-        toasts.show(successMessage ?? de.toasts.opened(loaded.name), 'info');
+        toasts.show(successMessage ?? m.toasts.opened(loaded.name), 'info');
       } catch (error) {
-        toasts.show(importErrorMessage(error), 'error');
+        toasts.show(importErrorMessage(error, m), 'error');
       }
     },
-    [toasts],
+    [m, toasts],
   );
 
   const handleFiles = useCallback(
     (files: FileList | File[]) => {
       const list = Array.from(files);
       if (list.length === 0) {
-        toasts.show(de.errors.noFile, 'error');
+        toasts.show(m.errors.noFile, 'error');
         return;
       }
       if (list.length > 1) {
-        toasts.show(de.toasts.singleFile, 'info');
+        toasts.show(m.toasts.singleFile, 'info');
       }
       void loadFile(list[0]!);
     },
-    [loadFile, toasts],
+    [loadFile, m, toasts],
   );
 
   const loadSample = useCallback(async () => {
@@ -276,13 +280,13 @@ export default function App() {
       if (!response.ok) throw new Error('sample');
       const blob = await response.blob();
       const file = new File([blob], 'beispiel-logo.png', { type: 'image/png' });
-      await loadFile(file, de.toasts.sampleLoaded);
+      await loadFile(file, m.toasts.sampleLoaded);
     } catch {
-      toasts.show(de.errors.sampleFailed, 'error');
+      toasts.show(m.errors.sampleFailed, 'error');
     } finally {
       setSampleLoading(false);
     }
-  }, [loadFile, toasts]);
+  }, [loadFile, m, toasts]);
 
   useEffect(() => {
     const onDragEnter = (event: DragEvent) => {
@@ -321,25 +325,86 @@ export default function App() {
   useEffect(() => {
     if (exportOpen || infoOpen) return;
     const onPaste = (event: ClipboardEvent) => {
+      // The explicit Ctrl/Cmd+V path below reads the clipboard itself; skip the
+      // duplicate event once that path has already imported the image.
+      if (clipboardReadRef.current === 'done') {
+        event.preventDefault();
+        clipboardReadRef.current = 'idle';
+        return;
+      }
       const items = Array.from(event.clipboardData?.items ?? []);
       const fileItems = items.filter((item) => item.kind === 'file');
       if (fileItems.length === 0) return;
       const imageItem = fileItems.find((item) => item.type.startsWith('image/'));
       if (!imageItem) {
-        toasts.show(de.errors.invalidType, 'error');
+        toasts.show(m.errors.invalidType, 'error');
         return;
       }
       const file = imageItem.getAsFile();
       if (!file) {
-        toasts.show(de.errors.clipboardEmpty, 'error');
+        toasts.show(m.errors.clipboardEmpty, 'error');
         return;
       }
       event.preventDefault();
-      void loadFile(file, de.toasts.opened(file.name || 'zwischenablage.png'));
+      pasteDeliveredRef.current = Date.now();
+      void loadFile(file, m.toasts.opened(file.name || 'zwischenablage.png'));
     };
     window.addEventListener('paste', onPaste);
     return () => window.removeEventListener('paste', onPaste);
-  }, [exportOpen, infoOpen, loadFile, toasts]);
+  }, [exportOpen, infoOpen, loadFile, m, toasts]);
+
+  /*
+   * Ctrl/Cmd+V reads the clipboard directly through the async Clipboard API.
+   * Some browsers only expose images as clipboard files inside the paste event
+   * (or not at all), so this path runs first and the paste listener above stays
+   * as the fallback.
+   */
+  useEffect(() => {
+    if (exportOpen || infoOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+      if (event.key.toLowerCase() !== 'v') return;
+      const clipboard = navigator.clipboard;
+      if (!clipboard || typeof clipboard.read !== 'function') return;
+
+      clipboardReadRef.current = 'pending';
+      void (async () => {
+        try {
+          const entries = await clipboard.read();
+          const entry = entries.find((item) =>
+            item.types.some((type) => type.startsWith('image/')),
+          );
+          const type = entry?.types.find((candidate) => candidate.startsWith('image/'));
+          if (!entry || !type) {
+            clipboardReadRef.current = 'idle';
+            return;
+          }
+          const blob = await entry.getType(type);
+          // A paste event may already have delivered the same image.
+          if (Date.now() - pasteDeliveredRef.current < 1_500) {
+            clipboardReadRef.current = 'idle';
+            return;
+          }
+          clipboardReadRef.current = 'done';
+          window.setTimeout(() => {
+            if (clipboardReadRef.current === 'done') clipboardReadRef.current = 'idle';
+          }, 1_000);
+          const extension = type === 'image/jpeg' ? 'jpg' : (type.split('/')[1] ?? 'png');
+          const file = new File([blob], `zwischenablage.${extension}`, { type });
+          await loadFile(file, m.toasts.opened(file.name));
+        } catch {
+          // Permission denied or unsupported: leave it to the paste listener.
+          clipboardReadRef.current = 'failed';
+          window.setTimeout(() => {
+            if (clipboardReadRef.current === 'failed') clipboardReadRef.current = 'idle';
+          }, 500);
+        }
+      })();
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [exportOpen, infoOpen, loadFile, m]);
 
   const updatePreferences = useCallback((patch: Partial<Preferences>) => {
     setPreferences((current) => ({ ...current, ...patch }));
@@ -359,15 +424,15 @@ export default function App() {
       history.update(() => next, `reset-${group}`, true);
       const message =
         group === 'form'
-          ? de.toasts.formReset
+          ? m.toasts.formReset
           : group === 'advanced'
-            ? de.toasts.advancedReset
+            ? m.toasts.advancedReset
             : group === 'preprocess'
-              ? de.toasts.preprocessReset
-              : de.toasts.settingsReset;
+              ? m.toasts.preprocessReset
+              : m.toasts.settingsReset;
       toasts.show(message, 'info');
     },
-    [history, toasts],
+    [history, m, toasts],
   );
 
   const resetAll = useCallback(() => {
@@ -378,8 +443,8 @@ export default function App() {
       backgroundColor: DEFAULT_PREFERENCES.backgroundColor,
       workingResolution: DEFAULT_PREFERENCES.workingResolution,
     }));
-    toasts.show(de.toasts.settingsReset, 'info');
-  }, [history, toasts]);
+    toasts.show(m.toasts.settingsReset, 'info');
+  }, [history, m, toasts]);
 
   const resetBackground = useCallback(() => {
     setPreferences((current) => ({
@@ -391,12 +456,12 @@ export default function App() {
 
   const openExport = useCallback(() => {
     if (!currentResult) {
-      toasts.show(de.header.exportDisabled, 'info');
+      toasts.show(m.header.exportDisabled, 'info');
       setViewMode('original');
       return;
     }
     setExportOpen(true);
-  }, [currentResult, toasts]);
+  }, [currentResult, m, toasts]);
 
   useShortcuts(
     {
@@ -416,7 +481,7 @@ export default function App() {
   return (
     <div className="app">
       <a className="skip-link" href="#main-content">
-        Zum Inhalt springen
+        {m.common.skipToContent}
       </a>
 
       <Header
@@ -453,7 +518,7 @@ export default function App() {
               <button
                 type="button"
                 className="sheet-backdrop"
-                aria-label={de.sidebar.closeSettings}
+                aria-label={m.sidebar.closeSettings}
                 onClick={() => setSettingsOpen(false)}
               />
             ) : null}
@@ -502,8 +567,8 @@ export default function App() {
         <div className="drop-overlay" aria-hidden="true">
           <div className="drop-overlay__card">
             <IconUpload size={26} stroke={1.6} />
-            <strong>{de.viewer.dropTitle}</strong>
-            <span>{de.viewer.dropBody}</span>
+            <strong>{m.viewer.dropTitle}</strong>
+            <span>{m.viewer.dropBody}</span>
           </div>
         </div>
       ) : null}
@@ -520,6 +585,8 @@ export default function App() {
       ) : null}
 
       {infoOpen ? <AboutDialog onClose={() => setInfoOpen(false)} /> : null}
+
+      <PrivacyNotice onShowDetails={() => setInfoOpen(true)} />
 
       <ToastViewport {...toasts} />
     </div>

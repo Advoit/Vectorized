@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { de } from '../i18n/de';
+import { useMessages, type Messages } from '../i18n';
 import { extractWorkingCopy, type SourceImage, type WorkingCopy } from '../image/load';
 import { traceInWorker } from '../trace/engine';
 import { parseVtracerSvg } from '../trace/postprocess';
@@ -25,16 +25,17 @@ export interface VectorizerApi {
 
 const IDLE_JOB: JobState = { phase: 'idle', startedAt: null, error: null };
 
-function friendlyWorkerError(error: unknown): string {
+function friendlyWorkerError(error: unknown, m: Messages): string {
   const message = error instanceof Error ? error.message : String(error);
   if (/wasm|webassembly|fetch|import|module/i.test(message)) {
-    return de.errors.wasmFailed;
+    return m.errors.wasmFailed;
   }
-  return de.errors.workerFailed;
+  return m.errors.workerFailed;
 }
 
 export function useVectorizer(options: UseVectorizerOptions): VectorizerApi {
   const { source, params, preferences } = options;
+  const m = useMessages();
   const [result, setResult] = useState<TraceResult | null>(null);
   const [job, setJob] = useState<JobState>(IDLE_JOB);
   const [error, setError] = useState<string | null>(null);
@@ -46,11 +47,13 @@ export function useVectorizer(options: UseVectorizerOptions): VectorizerApi {
   const workingRef = useRef<(WorkingCopy & { key: string }) | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
   const activeRequest = useRef(0);
+  const messagesRef = useRef<Messages>(m);
 
   sourceRef.current = source;
   paramsRef.current = params;
   resolutionRef.current = preferences.workingResolution;
   successRef.current = options.onSuccess;
+  messagesRef.current = m;
 
   useEffect(() => {
     controllerRef.current?.abort();
@@ -125,7 +128,7 @@ export function useVectorizer(options: UseVectorizerOptions): VectorizerApi {
 
       if (parsed.paths.length === 0) {
         setJob(IDLE_JOB);
-        setError(de.errors.noPaths);
+        setError(messagesRef.current.errors.noPaths);
         return null;
       }
 
@@ -159,7 +162,7 @@ export function useVectorizer(options: UseVectorizerOptions): VectorizerApi {
       if (caught instanceof DOMException && caught.name === 'AbortError') {
         return null;
       }
-      const message = friendlyWorkerError(caught);
+      const message = friendlyWorkerError(caught, messagesRef.current);
       setJob(IDLE_JOB);
       setError(message);
       return null;

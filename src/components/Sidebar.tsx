@@ -9,7 +9,7 @@ import {
   IconVectorBezier2,
   IconX,
 } from '@tabler/icons-react';
-import { de } from '../i18n/de';
+import { useMessages, useNumberFormat } from '../i18n';
 import type { SourceImage } from '../image/load';
 import {
   isGroupDefault,
@@ -51,10 +51,6 @@ interface SidebarProps {
   onCancel: () => void;
 }
 
-function numberText(value: number, decimal = false): string {
-  return decimal ? value.toFixed(1).replace('.', ',') : String(value);
-}
-
 export function Sidebar({
   open,
   isMobile,
@@ -76,6 +72,8 @@ export function Sidebar({
   onTrace,
   onCancel,
 }: SidebarProps) {
+  const m = useMessages();
+  const { decimal } = useNumberFormat();
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const activePreset = matchingPreset(params);
@@ -105,22 +103,22 @@ export function Sidebar({
 
   const phaseText =
     job.phase === 'preparing'
-      ? de.status.preparing
+      ? m.status.preparing
       : job.phase === 'tracing'
-        ? de.status.tracing
-        : de.status.finalizing;
+        ? m.status.tracing
+        : m.status.finalizing;
 
   return (
     <aside
       className={`sidebar${open ? ' is-open' : ''}`}
-      aria-label={de.sidebar.title}
+      aria-label={m.sidebar.title}
       id="settings-panel"
     >
       <header className="sidebar__header">
-        <h2>{de.sidebar.title}</h2>
+        <h2>{m.sidebar.title}</h2>
         {isMobile ? (
           <IconButton
-            label={de.sidebar.closeSettings}
+            label={m.sidebar.closeSettings}
             icon={<IconX size={17} stroke={1.7} />}
             onClick={onClose}
           />
@@ -130,9 +128,9 @@ export function Sidebar({
       <div className="sidebar__scroll">
         <section className="sidebar-section">
           <div className="section-head">
-            <h3>{de.sidebar.presets}</h3>
+            <h3>{m.sidebar.presets}</h3>
           </div>
-          <div className="preset-row" role="group" aria-label={de.sidebar.presets}>
+          <div className="preset-row" role="group" aria-label={m.sidebar.presets}>
             {PRESETS.map((preset) => (
               <button
                 key={preset.id}
@@ -142,30 +140,30 @@ export function Sidebar({
                 aria-pressed={activePreset === preset.id}
               >
                 {preset.id === 'logo'
-                  ? de.presets.logo.name
+                  ? m.presets.logo.name
                   : preset.id === 'illustration'
-                    ? de.presets.illustration.name
-                    : de.presets.bw.name}
+                    ? m.presets.illustration.name
+                    : m.presets.bw.name}
               </button>
             ))}
           </div>
           <p className="preset-description">
             {activePreset === 'logo'
-              ? de.presets.logo.description
+              ? m.presets.logo.description
               : activePreset === 'illustration'
-                ? de.presets.illustration.description
+                ? m.presets.illustration.description
                 : activePreset === 'bw'
-                  ? de.presets.bw.description
-                  : de.sidebar.customPreset}
+                  ? m.presets.bw.description
+                  : m.sidebar.customPreset}
           </p>
         </section>
 
         <section className="sidebar-section">
           <div className="section-head">
-            <h3>{de.sidebar.mode}</h3>
+            <h3>{m.sidebar.mode}</h3>
             {modeChanged ? (
               <IconButton
-                label={de.sidebar.resetMode}
+                label={m.sidebar.resetMode}
                 icon={<IconRefresh size={13} stroke={1.8} />}
                 onClick={() => onResetGroup('mode')}
               />
@@ -173,31 +171,31 @@ export function Sidebar({
           </div>
           <Segmented
             fill
-            label={de.sidebar.mode}
+            label={m.sidebar.mode}
             value={params.colorMode}
             onChange={(value) => onPatch({ colorMode: value }, 'mode', true)}
             options={[
               {
                 value: 'color',
-                label: de.sidebar.colorMode,
+                label: m.sidebar.colorMode,
                 icon: <IconPalette size={15} stroke={1.7} />,
               },
               {
                 value: 'bw',
-                label: de.sidebar.bwMode,
+                label: m.sidebar.bwMode,
                 icon: <IconCircleHalf2 size={15} stroke={1.7} />,
               },
             ]}
           />
-          {params.colorMode === 'bw' ? <p className="info-note">{de.sidebar.bwHint}</p> : null}
+          {params.colorMode === 'bw' ? <p className="info-note">{m.sidebar.bwHint}</p> : null}
         </section>
 
         <section className="sidebar-section">
           <div className="section-head">
-            <h3>{de.sidebar.form}</h3>
+            <h3>{m.sidebar.form}</h3>
             {formChanged ? (
               <IconButton
-                label={de.sidebar.resetForm}
+                label={m.sidebar.resetForm}
                 icon={<IconRefresh size={13} stroke={1.8} />}
                 onClick={() => onResetGroup('form')}
               />
@@ -206,39 +204,39 @@ export function Sidebar({
 
           <SliderField
             id="color-detail"
-            label={de.sidebar.colorDetail}
+            label={m.sidebar.colorDetail}
             value={params.colorPrecision}
             min={PARAM_RANGES.colorPrecision.min}
             max={PARAM_RANGES.colorPrecision.max}
             step={PARAM_RANGES.colorPrecision.step}
-            valueText={de.sidebar.colorDetailValue(params.colorPrecision)}
-            hint={de.sidebar.colorDetailHint}
+            valueText={m.sidebar.colorDetailValue(params.colorPrecision)}
+            hint={m.sidebar.colorDetailHint}
             disabled={params.colorMode === 'bw'}
-            disabledHint={de.sidebar.bwHint}
+            disabledHint={m.sidebar.bwHint}
             onChange={(value) => onPatch({ colorPrecision: value }, 'colorPrecision')}
           />
 
           <SliderField
             id="smoothing"
-            label={de.sidebar.smoothing}
+            label={m.sidebar.smoothing}
             value={params.lengthThreshold}
             min={PARAM_RANGES.lengthThreshold.min}
             max={PARAM_RANGES.lengthThreshold.max}
             step={PARAM_RANGES.lengthThreshold.step}
-            valueText={numberText(params.lengthThreshold, true)}
-            hint={de.sidebar.smoothingHint}
+            valueText={decimal(params.lengthThreshold)}
+            hint={m.sidebar.smoothingHint}
             onChange={(value) => onPatch({ lengthThreshold: value }, 'lengthThreshold')}
           />
 
           <SliderField
             id="speckle"
-            label={de.sidebar.speckle}
+            label={m.sidebar.speckle}
             value={params.filterSpeckle}
             min={PARAM_RANGES.filterSpeckle.min}
             max={PARAM_RANGES.filterSpeckle.max}
             step={PARAM_RANGES.filterSpeckle.step}
-            valueText={de.sidebar.speckleValue(params.filterSpeckle)}
-            hint={de.sidebar.speckleHint}
+            valueText={m.sidebar.speckleValue(params.filterSpeckle)}
+            hint={m.sidebar.speckleHint}
             onChange={(value) => onPatch({ filterSpeckle: value }, 'filterSpeckle')}
           />
 
@@ -249,7 +247,7 @@ export function Sidebar({
             aria-controls="advanced-options"
             onClick={() => setAdvancedOpen((current) => !current)}
           >
-            <span>{de.sidebar.advanced}</span>
+            <span>{m.sidebar.advanced}</span>
             <span className={`disclosure__chevron${advancedOpen ? ' is-open' : ''}`} aria-hidden="true">
               <IconChevronDown size={15} stroke={1.8} />
             </span>
@@ -260,7 +258,7 @@ export function Sidebar({
               <div className="advanced-head">
                 {advancedChanged ? (
                   <IconButton
-                    label={de.sidebar.resetAdvanced}
+                    label={m.sidebar.resetAdvanced}
                     icon={<IconRefresh size={13} stroke={1.8} />}
                     onClick={() => onResetGroup('advanced')}
                   />
@@ -268,63 +266,68 @@ export function Sidebar({
               </div>
               <SliderField
                 id="corners"
-                label={de.sidebar.corners}
+                label={m.sidebar.corners}
                 value={params.cornerThreshold}
                 min={PARAM_RANGES.cornerThreshold.min}
                 max={PARAM_RANGES.cornerThreshold.max}
                 step={PARAM_RANGES.cornerThreshold.step}
                 valueText={`${params.cornerThreshold}°`}
-                hint={de.sidebar.cornersHint}
+                hint={m.sidebar.cornersHint}
                 onChange={(value) => onPatch({ cornerThreshold: value }, 'cornerThreshold')}
               />
               <SliderField
                 id="color-gap"
-                label={de.sidebar.colorGap}
+                label={m.sidebar.colorGap}
                 value={params.layerDifference}
                 min={PARAM_RANGES.layerDifference.min}
                 max={PARAM_RANGES.layerDifference.max}
                 step={PARAM_RANGES.layerDifference.step}
                 valueText={String(params.layerDifference)}
-                hint={de.sidebar.colorGapHint}
+                hint={m.sidebar.colorGapHint}
                 disabled={params.colorMode === 'bw'}
-                disabledHint={de.sidebar.bwHint}
+                disabledHint={m.sidebar.bwHint}
                 onChange={(value) => onPatch({ layerDifference: value }, 'layerDifference')}
               />
               <div className="field">
-                <span className="field-label">{de.sidebar.curveMode}</span>
+                <span className="field-label">{m.sidebar.curveMode}</span>
                 <Segmented
                   fill
-                  label={de.sidebar.curveMode}
+                  label={m.sidebar.curveMode}
                   value={params.curveMode}
                   onChange={(value) => onPatch({ curveMode: value }, 'curveMode', true)}
                   options={[
-                    { value: 'spline', label: de.sidebar.spline },
-                    { value: 'polygon', label: de.sidebar.polygon },
+                    {
+                      value: 'spline',
+                      label: m.sidebar.spline,
+                      disabled: true,
+                      disabledReason: m.sidebar.splineUnavailable,
+                    },
+                    { value: 'polygon', label: m.sidebar.polygon },
                   ]}
                 />
               </div>
               <SliderField
                 id="splice"
-                label={de.sidebar.splice}
+                label={m.sidebar.splice}
                 value={params.spliceThreshold}
                 min={PARAM_RANGES.spliceThreshold.min}
                 max={PARAM_RANGES.spliceThreshold.max}
                 step={PARAM_RANGES.spliceThreshold.step}
                 valueText={`${params.spliceThreshold}°`}
-                hint={de.sidebar.spliceHint}
+                hint={m.sidebar.spliceHint}
                 onChange={(value) => onPatch({ spliceThreshold: value }, 'spliceThreshold')}
               />
-              <p className="engine-note">{de.sidebar.engineNote}</p>
+              <p className="engine-note">{m.sidebar.engineNote}</p>
             </div>
           ) : null}
         </section>
 
         <section className="sidebar-section">
           <div className="section-head">
-            <h3>{de.sidebar.preprocessing}</h3>
+            <h3>{m.sidebar.preprocessing}</h3>
             {preprocessChanged ? (
               <IconButton
-                label={de.sidebar.resetPreprocess}
+                label={m.sidebar.resetPreprocess}
                 icon={<IconRefresh size={13} stroke={1.8} />}
                 onClick={() => onResetGroup('preprocess')}
               />
@@ -334,21 +337,21 @@ export function Sidebar({
           <Switch
             checked={params.removeBackground}
             onChange={(checked) => onPatch({ removeBackground: checked }, 'removeBackground', true)}
-            label={de.sidebar.removeBackground}
-            description={de.sidebar.removeBackgroundHint}
+            label={m.sidebar.removeBackground}
+            description={m.sidebar.removeBackgroundHint}
           />
 
           {params.removeBackground ? (
             <div className="switch-subfield">
               <SliderField
                 id="background-tolerance"
-                label={de.sidebar.tolerance}
+                label={m.sidebar.tolerance}
                 value={params.backgroundTolerance}
                 min={PARAM_RANGES.backgroundTolerance.min}
                 max={PARAM_RANGES.backgroundTolerance.max}
                 step={PARAM_RANGES.backgroundTolerance.step}
                 valueText={`${params.backgroundTolerance} %`}
-                hint={de.sidebar.toleranceHint}
+                hint={m.sidebar.toleranceHint}
                 onChange={(value) => onPatch({ backgroundTolerance: value }, 'backgroundTolerance')}
               />
             </div>
@@ -356,7 +359,7 @@ export function Sidebar({
 
           <div className="field">
             <label className="field-label" htmlFor="working-resolution">
-              {de.sidebar.resolution}
+              {m.sidebar.resolution}
             </label>
             <select
               id="working-resolution"
@@ -366,29 +369,29 @@ export function Sidebar({
             >
               {WORKING_RESOLUTIONS.map((value) => (
                 <option key={value} value={value}>
-                  {value === 0 ? de.sidebar.resolutionOriginal : resolutionLabel(value)}
+                  {value === 0 ? m.sidebar.resolutionOriginal : resolutionLabel(value)}
                 </option>
               ))}
             </select>
-            <p className="field-hint">{de.sidebar.resolutionHint}</p>
+            <p className="field-hint">{m.sidebar.resolutionHint}</p>
             <p className="field-hint numeric">
-              {de.status.imageInfo(working.width, working.height)}
+              {m.status.imageInfo(working.width, working.height)}
               {isLarge
-                ? ` · ${de.sidebar.largeImageBody(source.width, source.height, preferences.workingResolution)}`
+                ? ` · ${m.sidebar.largeImageBody(source.width, source.height, preferences.workingResolution)}`
                 : ''}
             </p>
             {originalSelected && source.width * source.height > 12_000_000 ? (
-              <p className="warning-note">{de.sidebar.originalWarning}</p>
+              <p className="warning-note">{m.sidebar.originalWarning}</p>
             ) : null}
           </div>
         </section>
 
         <section className="sidebar-section">
           <div className="section-head">
-            <h3>{de.sidebar.output}</h3>
+            <h3>{m.sidebar.output}</h3>
             {backgroundChanged ? (
               <IconButton
-                label={de.sidebar.resetBackground}
+                label={m.sidebar.resetBackground}
                 icon={<IconRefresh size={13} stroke={1.8} />}
                 onClick={onResetBackground}
               />
@@ -396,18 +399,18 @@ export function Sidebar({
           </div>
           <Segmented
             fill
-            label={de.sidebar.background}
+            label={m.sidebar.background}
             value={preferences.background}
             onChange={(value) => onPreferences({ background: value })}
             options={[
-              { value: 'transparent', label: de.sidebar.bgTransparent },
-              { value: 'white', label: de.sidebar.bgWhite },
-              { value: 'custom', label: de.sidebar.bgCustom },
+              { value: 'transparent', label: m.sidebar.bgTransparent },
+              { value: 'white', label: m.sidebar.bgWhite },
+              { value: 'custom', label: m.sidebar.bgCustom },
             ]}
           />
           {preferences.background === 'custom' ? (
             <div className="color-field">
-              <label htmlFor="background-color">{de.sidebar.bgColorLabel}</label>
+              <label htmlFor="background-color">{m.sidebar.bgColorLabel}</label>
               <div className="color-field__control">
                 <input
                   id="background-color"
@@ -419,7 +422,7 @@ export function Sidebar({
               </div>
             </div>
           ) : null}
-          <p className="field-hint">{de.sidebar.backgroundHint}</p>
+          <p className="field-hint">{m.sidebar.backgroundHint}</p>
         </section>
 
         {result ? (
@@ -427,13 +430,13 @@ export function Sidebar({
             {result.hadTransparency ? (
               <p>
                 <IconInfoCircle size={14} stroke={1.7} aria-hidden="true" />
-                <span>{de.sidebar.transparencyHint}</span>
+                <span>{m.sidebar.transparencyHint}</span>
               </p>
             ) : null}
             {result.sourceColorEstimate > 4096 ? (
               <p>
                 <IconAlertTriangle size={14} stroke={1.7} aria-hidden="true" />
-                <span>{de.sidebar.photoHint}</span>
+                <span>{m.sidebar.photoHint}</span>
               </p>
             ) : null}
           </section>
@@ -443,12 +446,12 @@ export function Sidebar({
           <Switch
             checked={preferences.autoTrace}
             onChange={(checked) => onPreferences({ autoTrace: checked })}
-            label={de.sidebar.autoTrace}
-            description={de.sidebar.autoTraceHint}
+            label={m.sidebar.autoTrace}
+            description={m.sidebar.autoTraceHint}
           />
           <button type="button" className="text-button sidebar-reset-all" onClick={onResetAll}>
             <IconRefresh size={13} stroke={1.8} aria-hidden="true" />
-            {de.sidebar.resetAll}
+            {m.sidebar.resetAll}
           </button>
         </section>
       </div>
@@ -460,7 +463,7 @@ export function Sidebar({
             <p>{error}</p>
             <div className="inline-error__actions">
               <Button variant="secondary" onClick={onTrace} icon={<IconRefresh size={14} />}>
-                {de.actions.retry}
+                {m.actions.retry}
               </Button>
             </div>
           </div>
@@ -473,7 +476,7 @@ export function Sidebar({
                 <Spinner size={14} />
                 {phaseText}
               </span>
-              <span className="numeric">{de.status.elapsed(elapsed.toFixed(1).replace('.', ','))}</span>
+              <span className="numeric">{m.status.elapsed(decimal(elapsed))}</span>
             </div>
             <div className="progress-bar" role="presentation">
               <span />
@@ -485,7 +488,7 @@ export function Sidebar({
               icon={<IconX size={15} />}
               data-testid="cancel-button"
             >
-              {de.actions.cancel}
+              {m.actions.cancel}
             </Button>
           </div>
         ) : (
@@ -498,11 +501,11 @@ export function Sidebar({
               aria-keyshortcuts="Control+Enter Meta+Enter"
               data-testid="trace-button"
             >
-              {result ? de.actions.update : de.actions.vectorize}
+              {result ? m.actions.update : m.actions.vectorize}
             </Button>
             <p className="primary-hint">
-              {de.shortcuts.vectorize} ·{' '}
-              <span>{stale ? de.viewer.staleHint : de.sidebar.primaryHint}</span>
+              {m.shortcuts.vectorize} ·{' '}
+              <span>{stale ? m.viewer.staleHint : m.sidebar.primaryHint}</span>
             </p>
           </>
         )}

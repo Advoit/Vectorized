@@ -143,12 +143,17 @@ export function utf8ByteLength(value: string): number {
   return new TextEncoder().encode(value).byteLength;
 }
 
-export function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1).replace('.', ',')} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(2).replace('.', ',')} MB`;
+export function formatBytes(bytes: number, locale = 'de-DE'): string {
+  const numberFormat = (digits: number) =>
+    new Intl.NumberFormat(locale, {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    });
+  if (bytes < 1024) return `${new Intl.NumberFormat(locale).format(bytes)} B`;
+  if (bytes < 1024 * 1024) return `${numberFormat(1).format(bytes / 1024)} KB`;
+  return `${numberFormat(2).format(bytes / (1024 * 1024))} MB`;
 }
 
-export function formatCount(value: number): string {
-  return new Intl.NumberFormat('de-DE').format(value);
+export function formatCount(value: number, locale = 'de-DE'): string {
+  return new Intl.NumberFormat(locale).format(value);
 }

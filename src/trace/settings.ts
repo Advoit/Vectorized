@@ -4,11 +4,14 @@ type NumericRange = { min: number; max: number; step: number };
 
 export const PARAM_RANGES = {
   /*
-   * The vendored VTracer 0.1.0 WASM build only produces stable results up to
-   * six significant colour bits. Seven collapses the image to one layer and
-   * eight traps inside visioncortex, so the UI deliberately stops at six.
+   * Measured against the vendored VTracer 0.1.0 WASM build: colour layers
+   * collapse as soon as the bit depth is high enough. An 8-colour stripe image
+   * yields eight paths at 4 bits but a single averaged path at 5; a logo with
+   * four colours stays intact up to 5 bits and collapses to two paths at 6.
+   * Four is the highest value that kept the colour structure in every
+   * measurement, so the UI stops there.
    */
-  colorPrecision: { min: 1, max: 6, step: 1 },
+  colorPrecision: { min: 1, max: 4, step: 1 },
   layerDifference: { min: 0, max: 64, step: 1 },
   filterSpeckle: { min: 0, max: 128, step: 1 },
   lengthThreshold: { min: 0.5, max: 10, step: 0.5 },
@@ -20,13 +23,19 @@ export const PARAM_RANGES = {
 
 export const DEFAULT_TRACE_PARAMS: TraceParams = {
   colorMode: 'color',
-  colorPrecision: 6,
+  colorPrecision: 4,
   layerDifference: 20,
   filterSpeckle: 10,
   lengthThreshold: 4,
   cornerThreshold: 60,
   spliceThreshold: 45,
-  curveMode: 'spline',
+  /*
+   * The bundled build's spline fitting displaces geometry by tens of pixels
+   * (a 160x60 rectangle becomes a 23x75 lens, 68 px off), while polygon output
+   * is pixel-exact. Polygons are therefore the default and the only curve mode
+   * the UI offers.
+   */
+  curveMode: 'polygon',
   maxIterations: 10,
   removeBackground: false,
   backgroundTolerance: 22,
@@ -56,7 +65,7 @@ export const PRESETS: readonly Preset[] = [
     id: 'illustration',
     params: {
       ...DEFAULT_TRACE_PARAMS,
-      colorPrecision: 6,
+      colorPrecision: 4,
       layerDifference: 12,
       filterSpeckle: 4,
       lengthThreshold: 3.5,
@@ -68,7 +77,7 @@ export const PRESETS: readonly Preset[] = [
     params: {
       ...DEFAULT_TRACE_PARAMS,
       colorMode: 'bw',
-      colorPrecision: 6,
+      colorPrecision: 4,
       layerDifference: 16,
       filterSpeckle: 6,
       lengthThreshold: 3.5,
@@ -144,7 +153,9 @@ export function sanitizeTraceParams(input: unknown): TraceParams {
       PARAM_RANGES.spliceThreshold,
       DEFAULT_TRACE_PARAMS.spliceThreshold,
     ),
-    curveMode: raw.curveMode === 'polygon' ? 'polygon' : 'spline',
+    // Stored or manipulated values are clamped to polygons: the bundled spline
+    // fitting produces displaced geometry, so it is never used.
+    curveMode: 'polygon',
     maxIterations: clampNumber(
       raw.maxIterations,
       PARAM_RANGES.maxIterations,

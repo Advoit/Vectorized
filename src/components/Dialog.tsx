@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { IconX } from '@tabler/icons-react';
-import { de } from '../i18n/de';
+import { useMessages } from '../i18n';
 import { IconButton } from './IconButton';
 
 interface DialogProps {
@@ -14,6 +14,7 @@ interface DialogProps {
 
 /** Native dialog: focus trap, Escape handling and backdrop semantics for free. */
 export function Dialog({ title, description, children, footer, onClose, className = '' }: DialogProps) {
+  const m = useMessages();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useRef(`dialog-title-${Math.random().toString(36).slice(2, 9)}`);
   const descriptionId = useRef(`dialog-desc-${Math.random().toString(36).slice(2, 9)}`);
@@ -50,7 +51,7 @@ export function Dialog({ title, description, children, footer, onClose, classNam
               </p>
             ) : null}
           </div>
-          <IconButton label={de.common.close} icon={<IconX size={17} stroke={1.7} />} onClick={onClose} />
+          <IconButton label={m.common.close} icon={<IconX size={17} stroke={1.7} />} onClick={onClose} />
         </header>
         <div className="dialog__body">{children}</div>
         {footer ? <footer className="dialog__footer">{footer}</footer> : null}

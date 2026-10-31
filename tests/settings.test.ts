@@ -16,8 +16,9 @@ import {
 
 describe('engine parameter bounds', () => {
   it('keeps colour precision inside the range supported by the WASM build', () => {
-    expect(PARAM_RANGES.colorPrecision.max).toBe(6);
-    expect(sanitizeTraceParams({ colorPrecision: 8 }).colorPrecision).toBe(6);
+    // Five or more bits make the bundled build merge every colour into one layer.
+    expect(PARAM_RANGES.colorPrecision.max).toBe(4);
+    expect(sanitizeTraceParams({ colorPrecision: 8 }).colorPrecision).toBe(4);
     expect(sanitizeTraceParams({ colorPrecision: 0 }).colorPrecision).toBe(1);
   });
 });
@@ -45,7 +46,7 @@ describe('sanitizeTraceParams', () => {
       colorMode: 'bw',
     });
 
-    expect(params.colorPrecision).toBe(6);
+    expect(params.colorPrecision).toBe(4);
     expect(params.layerDifference).toBe(0);
     expect(params.filterSpeckle).toBe(128);
     expect(params.lengthThreshold).toBe(3);
@@ -110,9 +111,9 @@ describe('trace signatures', () => {
   it('change when geometry-relevant parameters change', () => {
     const base = traceSignature(DEFAULT_TRACE_PARAMS, 'image-a', 800, 600);
     const variants = [
-      traceSignature({ ...DEFAULT_TRACE_PARAMS, colorPrecision: 5 }, 'image-a', 800, 600),
+      traceSignature({ ...DEFAULT_TRACE_PARAMS, colorPrecision: 3 }, 'image-a', 800, 600),
       traceSignature({ ...DEFAULT_TRACE_PARAMS, removeBackground: true }, 'image-a', 800, 600),
-      traceSignature({ ...DEFAULT_TRACE_PARAMS, curveMode: 'polygon' }, 'image-a', 800, 600),
+      traceSignature({ ...DEFAULT_TRACE_PARAMS, curveMode: 'spline' }, 'image-a', 800, 600),
       traceSignature(DEFAULT_TRACE_PARAMS, 'image-b', 800, 600),
       traceSignature(DEFAULT_TRACE_PARAMS, 'image-a', 799, 600),
     ];
@@ -138,7 +139,7 @@ describe('presets and resets', () => {
       colorMode: 'bw' as const,
       colorPrecision: 3,
       filterSpeckle: 44,
-      curveMode: 'polygon' as const,
+      curveMode: 'spline' as const,
       maxIterations: 2,
       removeBackground: true,
       backgroundTolerance: 70,
@@ -148,7 +149,7 @@ describe('presets and resets', () => {
     expect(form.colorPrecision).toBe(DEFAULT_TRACE_PARAMS.colorPrecision);
     expect(form.filterSpeckle).toBe(DEFAULT_TRACE_PARAMS.filterSpeckle);
     expect(form.colorMode).toBe('bw');
-    expect(form.curveMode).toBe('polygon');
+    expect(form.curveMode).toBe('spline');
     expect(form.removeBackground).toBe(true);
 
     const advanced = resetParamsGroup(custom, 'advanced');
@@ -164,7 +165,7 @@ describe('presets and resets', () => {
     const mode = resetParamsGroup(custom, 'mode');
     expect(mode.colorMode).toBe('color');
     expect(mode.colorPrecision).toBe(DEFAULT_TRACE_PARAMS.colorPrecision);
-    expect(mode.curveMode).toBe('polygon');
+    expect(mode.curveMode).toBe('spline');
 
     expect(resetParamsGroup(custom, 'all')).toEqual(DEFAULT_TRACE_PARAMS);
   });

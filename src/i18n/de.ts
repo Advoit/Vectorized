@@ -15,6 +15,7 @@ export const de = {
     done: 'Fertig',
     optional: 'optional',
     loading: 'Wird geladen …',
+    skipToContent: 'Zum Inhalt springen',
   },
   header: {
     open: 'Bild öffnen',
@@ -30,6 +31,7 @@ export const de = {
     info: 'Über Kontur',
     infoTooltip: 'Info, Tastenkürzel und Lizenzhinweise',
     newImage: 'Neues Bild',
+    language: 'Sprache wechseln',
   },
   empty: {
     heading: 'Rasterbild in Vektoren umwandeln',
@@ -93,7 +95,7 @@ export const de = {
     form: 'Form & Farbe',
     colorDetail: 'Farbdetail',
     colorDetailHint: 'Höher erkennt mehr Farbabstufungen. Nur im Farbmodus.',
-    colorDetailValue: (value: number) => `${value} von 6`,
+    colorDetailValue: (value: number) => `${value} von 4`,
     smoothing: 'Glättung',
     smoothingHint: 'Höher erzeugt ruhigere Kurven mit weniger Stützpunkten.',
     speckle: 'Kleine Flächen entfernen',
@@ -108,6 +110,8 @@ export const de = {
     colorGapHint: 'Abstand zwischen Farbebenen. Höher fasst ähnliche Farben zusammen.',
     curveMode: 'Kurvenform',
     spline: 'Spline',
+    splineUnavailable:
+      'Die Spline-Anpassung des gebündelten Engine-Builds verschiebt die Geometrie um bis zu mehrere Dutzend Pixel. Bis ein korrigierter Build vorliegt, ist Polygon die einzige verlässliche Kurvenform.',
     polygon: 'Polygon',
     splice: 'Kurvenschluss',
     spliceHint: 'Feinabstimmung, wie Kurvensegmente verbunden werden.',
@@ -263,6 +267,13 @@ export const de = {
     keyboardNote: 'Kürzel für Bearbeitung sind in Textfeldern deaktiviert.',
     close: 'Schließen',
   },
+  privacy: {
+    title: 'Keine Cookies, kein Tracking',
+    body:
+      'Diese Seite setzt keine Cookies und lädt nichts von fremden Servern. Gespeichert werden ausschließlich Ihre Einstellungen und die gewählte Sprache im localStorage dieses Browsers. Es gibt keine Einwilligung zu erteilen, weil nichts erfasst wird.',
+    dismiss: 'Verstanden',
+    more: 'Mehr zum Datenschutz',
+  },
   shortcuts: {
     open: 'Strg+O',
     export: 'Strg+E',
@@ -292,6 +303,10 @@ export const de = {
     emptyPixels: 'Das Bild enthält keine lesbaren Pixel.',
     sampleFailed: 'Das Beispielbild konnte nicht geladen werden. Bitte die Datei erneut öffnen.',
     generic: 'Etwas ist schiefgelaufen. Bitte erneut versuchen.',
+    crashTitle: 'Die Oberfläche ist auf einen Fehler gestoßen.',
+    crashBody:
+      'Geöffnete Bilder werden nicht gespeichert. Laden Sie die Seite neu, um neu zu beginnen.',
+    crashReload: 'Seite neu laden',
   },
   toasts: {
     opened: (name: string) => `${name} geöffnet.`,
@@ -312,6 +327,11 @@ export const de = {
   units: {
     pixelSquared: 'px²',
   },
-} as const;
+};
 
+/**
+ * The German object is the reference shape: every other locale must provide
+ * exactly these keys, so a missing translation fails the typecheck instead of
+ * silently rendering an empty string.
+ */
 export type Messages = typeof de;

@@ -6,7 +6,7 @@ import {
   IconPhoto,
   IconVector,
 } from '@tabler/icons-react';
-import { de } from '../i18n/de';
+import { useLocale, useMessages } from '../i18n';
 import {
   copyText,
   downloadPngFile,
@@ -41,6 +41,8 @@ export function ExportDialog({
   onClose,
   toasts,
 }: ExportDialogProps) {
+  const m = useMessages();
+  const { locale } = useLocale();
   const [format, setFormat] = useState<'svg' | 'png'>('svg');
   const [fileName, setFileName] = useState(() => exportBaseName(source.baseName));
   const [pngWidth, setPngWidth] = useState(String(result.width));
@@ -91,18 +93,18 @@ export function ExportDialog({
 
   const handleDownloadSvg = () => {
     downloadSvgFile(svgExport, fileNameWithExtension(fileName, 'svg'));
-    toasts.show(de.export.downloadSuccess('SVG'), 'success');
+    toasts.show(m.export.downloadSuccess('SVG'), 'success');
   };
 
   const handleCopySvg = async () => {
     const copied = await copyText(svgExport);
-    toasts.show(copied ? de.export.copySuccess : de.export.copyError, copied ? 'success' : 'error');
+    toasts.show(copied ? m.export.copySuccess : m.export.copyError, copied ? 'success' : 'error');
   };
 
   const handleDownloadPng = async () => {
     setPngError(null);
     if (pngLimit) {
-      setPngError(de.export.pngTooLarge);
+      setPngError(m.export.pngTooLarge);
       return;
     }
     setPngBusy(true);
@@ -111,9 +113,9 @@ export function ExportDialog({
         { svg: pngSvg, width: targetWidth, height: targetHeight },
         fileNameWithExtension(fileName, 'png'),
       );
-      toasts.show(de.export.downloadSuccess('PNG'), 'success');
+      toasts.show(m.export.downloadSuccess('PNG'), 'success');
     } catch {
-      setPngError(de.export.pngRenderError);
+      setPngError(m.export.pngRenderError);
     } finally {
       setPngBusy(false);
     }
@@ -121,14 +123,14 @@ export function ExportDialog({
 
   return (
     <Dialog
-      title={de.export.title}
-      description={de.export.description}
+      title={m.export.title}
+      description={m.export.description}
       onClose={onClose}
       className="dialog--export"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            {de.export.close}
+            {m.export.close}
           </Button>
           <div className="dialog__footer-actions">
             {format === 'svg' ? (
@@ -137,7 +139,7 @@ export function ExportDialog({
                 icon={<IconCopy size={15} stroke={1.8} />}
                 onClick={() => void handleCopySvg()}
               >
-                {de.actions.copySvg}
+                {m.actions.copySvg}
               </Button>
             ) : null}
             <Button
@@ -152,7 +154,7 @@ export function ExportDialog({
               onClick={format === 'svg' ? handleDownloadSvg : () => void handleDownloadPng()}
               disabled={pngBusy || (format === 'png' && pngLimit !== null)}
             >
-              {pngBusy ? de.common.loading : format === 'svg' ? de.actions.downloadSvg : de.actions.downloadPng}
+              {pngBusy ? m.common.loading : format === 'svg' ? m.actions.downloadSvg : m.actions.downloadPng}
             </Button>
           </div>
         </>
@@ -161,18 +163,18 @@ export function ExportDialog({
       <div className="export-top">
         <Segmented
           fill
-          label={de.export.format}
+          label={m.export.format}
           value={format}
           onChange={(value) => setFormat(value)}
           options={[
             {
               value: 'svg',
-              label: de.export.svg,
+              label: m.export.svg,
               icon: <IconVector size={15} stroke={1.7} />,
             },
             {
               value: 'png',
-              label: de.export.png,
+              label: m.export.png,
               icon: <IconPhoto size={15} stroke={1.7} />,
             },
           ]}
@@ -180,14 +182,14 @@ export function ExportDialog({
         {stale ? (
           <div className="warning-note dialog-warning" role="status">
             <IconAlertTriangle size={15} stroke={1.9} aria-hidden="true" />
-            <span>{de.export.exportStale}</span>
+            <span>{m.export.exportStale}</span>
           </div>
         ) : null}
       </div>
 
       <div className="field">
         <label className="field-label" htmlFor="export-filename">
-          {de.export.filename}
+          {m.export.filename}
         </label>
         <div className="input-with-suffix">
           <input
@@ -201,7 +203,7 @@ export function ExportDialog({
           />
           <span className="numeric">.{format}</span>
         </div>
-        <p className="field-hint">{de.export.filenameHint}</p>
+        <p className="field-hint">{m.export.filenameHint}</p>
       </div>
 
       {format === 'svg' ? (
@@ -214,20 +216,20 @@ export function ExportDialog({
               </dd>
             </div>
             <div>
-              <dt>{de.export.svgSummary}</dt>
+              <dt>{m.export.svgSummary}</dt>
               <dd className="numeric">
-                {de.export.svgDetails(
-                  formatCount(result.stats.pathCount),
-                  formatCount(result.stats.colorCount),
-                  formatBytes(svgBytes),
+                {m.export.svgDetails(
+                  formatCount(result.stats.pathCount, locale),
+                  formatCount(result.stats.colorCount, locale),
+                  formatBytes(svgBytes, locale),
                 )}
               </dd>
             </div>
           </dl>
           <p className="field-hint">
             {preferences.background === 'transparent'
-              ? de.export.svgTransparent
-              : de.export.svgIncludesBackground}
+              ? m.export.svgTransparent
+              : m.export.svgIncludesBackground}
           </p>
         </div>
       ) : (
@@ -235,7 +237,7 @@ export function ExportDialog({
           <div className="png-row">
             <div className="field">
               <label className="field-label" htmlFor="png-width">
-                {de.export.pngWidth}
+                {m.export.pngWidth}
               </label>
               <input
                 id="png-width"
@@ -249,14 +251,14 @@ export function ExportDialog({
               />
             </div>
             <div className="field">
-              <span className="field-label">{de.export.pngHeight}</span>
+              <span className="field-label">{m.export.pngHeight}</span>
               <output className="text-input output-readonly numeric">
                 {Number.isFinite(targetHeight) ? targetHeight : '–'}
               </output>
             </div>
           </div>
 
-          <div className="scale-buttons" role="group" aria-label={de.export.pngScale}>
+          <div className="scale-buttons" role="group" aria-label={m.export.pngScale}>
             {[1, 2, 4].map((factor) => (
               <button
                 key={factor}
@@ -268,21 +270,21 @@ export function ExportDialog({
               </button>
             ))}
             <span className="field-hint numeric">
-              {de.export.pngSizeInfo(targetWidth, targetHeight)}
+              {m.export.pngSizeInfo(targetWidth, targetHeight)}
             </span>
           </div>
 
           <Switch
             checked={pngTransparent}
             onChange={setPngTransparent}
-            label={de.export.pngTransparent}
-            description={de.export.pngTransparentHint}
+            label={m.export.pngTransparent}
+            description={m.export.pngTransparentHint}
           />
 
           {pngLimit ? (
-            <p className="inline-field-error">{de.export.pngTooLarge}</p>
+            <p className="inline-field-error">{m.export.pngTooLarge}</p>
           ) : (
-            <p className="field-hint">{de.export.pngLimit}</p>
+            <p className="field-hint">{m.export.pngLimit}</p>
           )}
           {pngError ? (
             <p className="inline-field-error" role="alert">

@@ -27,6 +27,9 @@ Repository-Unterpfad.
 - **Langlebige Läufe:** Tracing im Web Worker, Abbrechen durch Beenden des
   Workers, Debouncing, Schutz vor veralteten Ergebnissen und ein
   Stale-Hinweis, wenn Parameter nach einem Ergebnis geändert wurden.
+- **Zweisprachig:** Deutsch und Englisch, umschaltbar im Kopfbereich und in
+  `localStorage` gemerkt. Die Sprachdateien sind typisiert, eine fehlende
+  Übersetzung bricht den Build statt leer zu rendern.
 - **Barrierefreiheit:** Beschriftete Regler und Dialoge, Fokusführung,
   Tastaturkürzel, sichtbare Fokuszustände und `prefers-reduced-motion`.
 
@@ -131,8 +134,15 @@ Skripte, Worker, Schriften und Bilder werden von derselben Origin geladen.
 | `+` / `-` | Zoomen |
 | Pfeiltasten auf dem Vergleichsregler | Vergleichslinie verschieben |
 
-Bilder können außerdem per Drag-and-drop oder Einfügen aus der Zwischenablage
-geladen werden.
+Bilder können außerdem per Drag-and-drop oder mit `Strg/Cmd + V` aus der
+Zwischenablage geladen werden. Der Tastaturweg liest die Zwischenablage über
+die asynchrone Clipboard-API und fällt auf das `paste`-Ereignis zurück, wenn
+der Browser keine Leseberechtigung vergibt.
+
+Ein schließbarer Hinweis erklärt beim ersten Besuch, dass die Seite keine
+Cookies setzt und ausschließlich Einstellungen und Sprache im `localStorage`
+speichert. Er blockiert nichts und verlangt keine Einwilligung, weil keine
+einwilligungspflichtige Verarbeitung stattfindet.
 
 ### Arbeitsauflösung
 
@@ -147,21 +157,33 @@ Arbeitsbildes; das SVG lässt sich verlustfrei skalieren.
 | Parameter | Bereich | Wirkung |
 | --- | --- | --- |
 | Farbmodus | Farbe / Schwarzweiß | Farbflächen oder binäres Schwarzweiß |
-| Farbpräzision | 1–6 | Signifikante Farbbits; höher = mehr Farbstufen |
+| Farbpräzision | 1–4 | Signifikante Farbbits; höher = mehr Farbstufen |
 | Ebenendifferenz | 0–64 | Mindestunterschied zwischen Farbschichten |
 | Kleine Flächen entfernen | 0–128 px | Speckle-Filter für Rauschflächen |
 | Kurvenlänge | 0,5–10 | Minimale Länge für Kurvensegmente |
 | Eckenwinkel | 0–180° | Empfindlichkeit der Eckenerkennung |
 | Splice-Winkel | 0–90° | Zusammenführen benachbarter Segmente |
-| Kurvenmodus | Spline / Polygon | Glatte Bézierkurven oder gerade Kanten |
+| Kurvenmodus | Polygon | Gerade Kanten; Spline ist im gebündelten Build deaktiviert |
 | Max. Iterationen | 1–20 | Aufwand der Kurvenanpassung |
 | Hintergrund entfernen | an/aus | Randflut mit Toleranz 0–100 |
 
-Die Farbpräzision ist bewusst auf **6** begrenzt. Der eingesetzte
-WASM-Build von VTracer 0.1.0 kollabiert bei 7 auf eine einzige Schicht, bei 8
-bleibt visioncortex in einer internen Schleife hängen. Gespeicherte oder
-manipulierte Werte über 6 werden beim Laden und im Worker defensiv auf 6
-begrenzt.
+Zwei Grenzen des gebündelten WASM-Builds von VTracer 0.1.0 sind gemessen und
+bestimmen die Defaults:
+
+- **Farbpräzision ≤ 4.** Mit steigender Bit-Tiefe verschmelzen die
+  Farbschichten: Ein Testbild mit acht Farbstreifen ergibt bei 4 Bits acht
+  Pfade, bei 5 nur noch einen mit Flächenmittelwert; ein Logo mit vier Farben
+  bleibt bis 5 Bits intakt und kollabiert bei 6 auf zwei Pfade. 4 ist der
+  höchste Wert, der in allen Messungen die Farbstruktur erhielt. Gespeicherte
+  oder manipulierte Werte werden beim Laden und im Worker auf 4 begrenzt.
+- **Nur Polygon.** Die Spline-Anpassung verschiebt die Geometrie unabhängig
+  von der Farbpräzision um bis zu mehrere Dutzend Pixel: Ein Rechteck von
+  160 × 60 px wird als 23 × 75 px große Linse ausgegeben (68 px Abweichung),
+  während Polygon pixelgenau ist (0 px). Die Spline-Option ist daher deaktiviert
+  und gespeicherte Werte werden auf Polygon abgebildet.
+
+Beides sind Fehler des Vendors, keine Einstellungssache; die Parameter bleiben
+unverändert, bis ein korrigierter Build eingebunden wird.
 
 ## Architektur
 
@@ -261,8 +283,10 @@ Kontur ist bewusst ehrlich:
 - **Füllungen statt Striche.** Die Ausgabe besteht aus gefüllten Pfaden. Eine
   vorhandene Strichlogik des Originals wird nicht als editierbarer
   SVG-`stroke` wiederhergestellt.
-- **Farbpräzision max. 6.** Höhere Werte sind mit dem gebündelten
-  Engine-Build nicht stabil (siehe oben).
+- **Farbpräzision max. 4, keine Splines.** Beides ist im gebündelten
+  Engine-Build fehlerhaft (siehe oben). Ohne Spline besteht die Ausgabe aus
+  vielen kurzen geraden Segmenten; sie ist geometrisch exakt, wirkt bei sehr
+  starkem Zoom aber leicht kantig.
 - **Harte Transparenzschwelle.** Alpha unter 128 wird als transparent
   behandelt, darüber opak. Weiche, halbtransparente Kanten werden nicht als
   Alphagradient exportiert.
@@ -307,4 +331,3 @@ Der Anwendungscode steht unter der MIT-Lizenz, siehe [LICENSE](LICENSE).
 Lizenzhinweise der gebündelten Bibliotheken und der Engine stehen in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); die Original-Lizenz von
 `vtracer-wasm` liegt zusätzlich unter `src/vendor/vtracer/LICENSE`.
-"# Vectorized" 

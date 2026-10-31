@@ -1,4 +1,4 @@
-import { de } from '../i18n/de';
+import { useMessages } from '../i18n';
 import { Dialog } from './Dialog';
 
 interface AboutDialogProps {
@@ -6,22 +6,24 @@ interface AboutDialogProps {
 }
 
 export function AboutDialog({ onClose }: AboutDialogProps) {
+  const m = useMessages();
+
   return (
     <Dialog
-      title={de.about.title}
+      title={m.about.title}
       onClose={onClose}
       className="dialog--about"
       footer={
         <button type="button" className="btn btn--primary" onClick={onClose}>
-          {de.about.close}
+          {m.about.close}
         </button>
       }
     >
-      <p className="about-intro">{de.about.intro}</p>
+      <p className="about-intro">{m.about.intro}</p>
 
       <section className="about-section">
-        <h3>{de.about.engineTitle}</h3>
-        <p>{de.about.engineBody}</p>
+        <h3>{m.about.engineTitle}</h3>
+        <p>{m.about.engineBody}</p>
         <p className="about-links">
           <a href="https://github.com/visioncortex/vtracer" target="_blank" rel="noreferrer noopener">
             visioncortex/vtracer
@@ -34,29 +36,29 @@ export function AboutDialog({ onClose }: AboutDialogProps) {
       </section>
 
       <section className="about-section">
-        <h3>{de.about.pipelineTitle}</h3>
-        <p>{de.about.pipelineBody}</p>
+        <h3>{m.about.pipelineTitle}</h3>
+        <p>{m.about.pipelineBody}</p>
       </section>
 
       <section className="about-section">
-        <h3>{de.about.privacyTitle}</h3>
-        <p>{de.about.privacyBody}</p>
+        <h3>{m.about.privacyTitle}</h3>
+        <p>{m.about.privacyBody}</p>
       </section>
 
       <section className="about-section">
-        <h3>{de.about.limitsTitle}</h3>
-        <p>{de.about.limitsBody}</p>
+        <h3>{m.about.limitsTitle}</h3>
+        <p>{m.about.limitsBody}</p>
       </section>
 
       <section className="about-section">
-        <h3>{de.about.licenseTitle}</h3>
-        <p>{de.about.licenseBody}</p>
+        <h3>{m.about.licenseTitle}</h3>
+        <p>{m.about.licenseBody}</p>
       </section>
 
       <section className="about-section">
-        <h3>{de.about.shortcutsTitle}</h3>
+        <h3>{m.about.shortcutsTitle}</h3>
         <dl className="shortcut-list">
-          {de.about.shortcuts.map(([keys, action]) => (
+          {m.about.shortcuts.map(([keys, action]) => (
             <div key={keys}>
               <dt>
                 <kbd>{keys}</kbd>
@@ -65,7 +67,7 @@ export function AboutDialog({ onClose }: AboutDialogProps) {
             </div>
           ))}
         </dl>
-        <p className="field-hint">{de.about.keyboardNote}</p>
+        <p className="field-hint">{m.about.keyboardNote}</p>
       </section>
     </Dialog>
   );
